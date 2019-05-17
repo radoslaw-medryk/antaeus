@@ -7,15 +7,8 @@
 
 package io.pleo.antaeus.data
 
-import io.pleo.antaeus.models.Currency
-import io.pleo.antaeus.models.Customer
-import io.pleo.antaeus.models.Invoice
-import io.pleo.antaeus.models.InvoiceStatus
-import io.pleo.antaeus.models.Money
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.selectAll
+import io.pleo.antaeus.models.*
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class AntaeusDal(private val db: Database) {
@@ -51,6 +44,49 @@ class AntaeusDal(private val db: Database) {
         }
 
         return fetchInvoice(id!!)
+    }
+
+    fun fetchInvoicePayment(invoice: Invoice): InvoicePayment? {
+        return transaction(db) {
+            InvoicePaymentTable
+                .select { InvoicePaymentTable.invoiceId.eq(invoice.id) }
+                .firstOrNull()
+                ?.toInvoicePayment()
+        }
+    }
+
+    fun fetchInvoicePayments(): List<InvoicePayment> {
+        return transaction(db) {
+            InvoicePaymentTable
+                .selectAll()
+                .map { it.toInvoicePayment() }
+        }
+    }
+
+    fun createInvoicePayment(invoice: Invoice, status: InvoicePaymentStatus = InvoicePaymentStatus.STARTED): InvoicePayment? {
+        transaction(db) {
+            InvoicePaymentTable
+                .insert {
+                    it[this.invoiceId] = invoice.id
+                    it[this.status] = status.toString()
+                } get InvoicePaymentTable.invoiceId
+        }
+        // TODO [RM]: up /\ will throw when InvoicePayment already exist for this invoice.
+        // TODO [RM]: catch specific exception and wrap into nicer one.
+
+        return fetchInvoicePayment(invoice)
+    }
+
+    fun updateInvoicePaymentStatus(invoicePayment: InvoicePayment, status: InvoicePaymentStatus): Boolean {
+        val updatedCount = transaction(db) {
+            InvoicePaymentTable
+                .update {
+                    it[this.invoiceId] = invoicePayment.invoiceId
+                    it[this.status] = status.toString()
+                }
+        }
+
+        return updatedCount > 0
     }
 
     fun fetchCustomer(id: Int): Customer? {
