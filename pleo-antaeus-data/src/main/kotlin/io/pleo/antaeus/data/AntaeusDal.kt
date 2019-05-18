@@ -53,23 +53,6 @@ class AntaeusDal(private val db: Database) {
         return fetchInvoice(id!!)
     }
 
-    fun fetchInvoicePayment(invoiceId: Int): InvoicePayment? {
-        return transaction(db) {
-            InvoicePaymentTable
-                .select { InvoicePaymentTable.invoiceId.eq(invoiceId) }
-                .firstOrNull()
-                ?.toInvoicePayment()
-        }
-    }
-
-    fun fetchInvoicePayments(): List<InvoicePayment> {
-        return transaction(db) {
-            InvoicePaymentTable
-                .selectAll()
-                .map { it.toInvoicePayment() }
-        }
-    }
-
     fun markInvoicePaymentStarted(invoiceId: Int): Boolean {
         // Only single InvoicePayment can be in progress at the same time (by SQL PK constraints).
         // Successfully creating InvoicePayment guarantees concurrency-safe payment.
