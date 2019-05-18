@@ -12,6 +12,11 @@ object InvoiceTable : Table() {
     val currency = varchar("currency", 3)
     val value = decimal("value", 1000, 2)
     val customerId = reference("customer_id", CustomerTable.id)
+}
+
+object InvoicePaymentTable : Table() {
+    // invoiceId is both FK and PK - this ensures only one entry can exist for single invoice
+    val invoiceId = reference("invoice_id", InvoiceTable.id).primaryKey()
     val status = text("status")
 }
 
