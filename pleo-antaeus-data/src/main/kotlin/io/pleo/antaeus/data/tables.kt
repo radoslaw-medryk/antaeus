@@ -15,7 +15,7 @@ object InvoiceTable : Table() {
 }
 
 object InvoicePaymentTable : Table() {
-    // invoideId is bot FK and PK - this ensures only one entry can exist for single invoice
+    // invoiceId is both FK and PK - this ensures only one entry can exist for single invoice
     val invoiceId = reference("invoice_id", InvoiceTable.id).primaryKey()
     val status = text("status")
 }
