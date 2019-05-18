@@ -2,6 +2,9 @@
 
 As most "Software as a Service" (SaaS) companies, Pleo needs to charge a subscription fee every month. Our database contains a few invoices for the different markets in which we operate. Your task is to build the logic that will pay those invoices on the first of the month. While this may seem simple, there is space for some decisions to be taken and you will be expected to justify them.
 
+### Time spent on challenge
+Around 6 working hours, more or less.
+
 ### Data consistency
 
 FinTech software often needs to deal with money. Be it charge customers and keep track of that payments, transfer funds between users, or other functionality, there is always one common challenge to face - data consistency. It is catastrophic if transfer of funds is interrupted by network error and database is left in inconsistent state, e.g. substracting funds from first account, but not adding them to the second one. The consistency can also be challenged when multiple operations are executed concurrently. To deal with that software must be designed is a way to ensure consistency in all scenarios.
