@@ -1,8 +1,6 @@
 package io.pleo.antaeus.models
 
-enum class InvoiceChargeResult {
-    FAILED_CONCURRENT_PAYMENT,
-    FAILED_REJECTED,
-    UNKNOWN,
-    PAID
-}
+class InvoiceChargeResult(
+    val invoiceId: Int,
+    val status: InvoiceChargeResultStatus
+)

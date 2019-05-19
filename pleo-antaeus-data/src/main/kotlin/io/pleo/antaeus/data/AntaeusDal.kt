@@ -31,6 +31,14 @@ class AntaeusDal(private val db: Database) {
         }
     }
 
+    fun fetchPendingInvoices(): List<Invoice> {
+        return transaction(db) {
+            (InvoiceTable leftJoin InvoicePaymentTable)
+                .select { InvoicePaymentTable.status.isNull() }
+                .map { it.toInvoice() }
+        }
+    }
+
     fun createInvoice(amount: Money, customerId: Int): Invoice? {
         val id = transaction(db) {
             // Insert the invoice and returns its new id.

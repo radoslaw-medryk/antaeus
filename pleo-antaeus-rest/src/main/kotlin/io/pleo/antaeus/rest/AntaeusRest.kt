@@ -53,18 +53,9 @@ class AntaeusRest (
                // V1
                path("v1") {
                    path("invoices") {
-                       path("payments") {
-                           get {
-                               it.json(invoiceService.fetchAllPayments())
-                           }
-
-                           get(":id") {
-                               it.json(invoiceService.fetchPayment(it.pathParam("id").toInt()))
-                           }
-
-                           post(":id") {
-                               it.json(billingService.chargeInvoice(it.pathParam("id").toInt()))
-                           }
+                       // URL: /rest/v1/invoices/payments :POST
+                       post("payments") {
+                           it.json(billingService.chargePendingInvoices())
                        }
 
                        // URL: /rest/v1/invoices
@@ -75,6 +66,13 @@ class AntaeusRest (
                        // URL: /rest/v1/invoices/{:id}
                        get(":id") {
                           it.json(invoiceService.fetch(it.pathParam("id").toInt()))
+                       }
+
+                       path(":id") {
+                           // URL: /rest/v1/invoices/{:id}/payment :POST
+                           post("payment") {
+                               it.json(billingService.chargeInvoice(it.pathParam("id").toInt()))
+                           }
                        }
                    }
 
