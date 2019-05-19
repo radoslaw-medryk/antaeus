@@ -31,25 +31,24 @@ class AntaeusDal(private val db: Database) {
         }
     }
 
-    fun createInvoice(amount: Money, customer: Customer, status: InvoiceStatus = InvoiceStatus.PENDING): Invoice? {
+    fun createInvoice(amount: Money, customerId: Int): Invoice? {
         val id = transaction(db) {
             // Insert the invoice and returns its new id.
             InvoiceTable
                 .insert {
                     it[this.value] = amount.value
                     it[this.currency] = amount.currency.toString()
-                    it[this.status] = status.toString()
-                    it[this.customerId] = customer.id
+                    it[this.customerId] = customerId
                 } get InvoiceTable.id
         }
 
         return fetchInvoice(id!!)
     }
 
-    fun fetchInvoicePayment(invoice: Invoice): InvoicePayment? {
+    fun fetchInvoicePayment(invoiceId: Int): InvoicePayment? {
         return transaction(db) {
             InvoicePaymentTable
-                .select { InvoicePaymentTable.invoiceId.eq(invoice.id) }
+                .select { InvoicePaymentTable.invoiceId.eq(invoiceId) }
                 .firstOrNull()
                 ?.toInvoicePayment()
         }
@@ -63,30 +62,52 @@ class AntaeusDal(private val db: Database) {
         }
     }
 
-    fun createInvoicePayment(invoice: Invoice, status: InvoicePaymentStatus = InvoicePaymentStatus.STARTED): InvoicePayment? {
-        transaction(db) {
-            InvoicePaymentTable
-                .insert {
-                    it[this.invoiceId] = invoice.id
-                    it[this.status] = status.toString()
-                } get InvoicePaymentTable.invoiceId
+    fun markInvoicePaymentStarted(invoiceId: Int): Boolean {
+        // Only single InvoicePayment can be in progress at the same time (by SQL PK constraints).
+        // Successfully creating InvoicePayment guarantees concurrency-safe payment.
+        try {
+            // It will throw when InvoicePayment already exist for this invoice.
+            transaction(db) {
+                InvoicePaymentTable
+                    .insert {
+                        it[this.invoiceId] = invoiceId
+                        it[this.status] = InvoicePaymentStatus.STARTED.toString()
+                    }
+            }
+        } catch (e: Throwable) {
+            // TODO [RM]: catch only specific exception and return false, else rethrow
+            return false
         }
-        // TODO [RM]: up /\ will throw when InvoicePayment already exist for this invoice.
-        // TODO [RM]: catch specific exception and wrap into nicer one.
 
-        return fetchInvoicePayment(invoice)
+        return true
     }
 
-    fun updateInvoicePaymentStatus(invoicePayment: InvoicePayment, status: InvoicePaymentStatus): Boolean {
+    fun markInvoicePaymentPaid(invoiceId: Int): Boolean {
+        // When payment succeeded, InvoicePayment will stay with status PAID, so no new payments can start.
         val updatedCount = transaction(db) {
             InvoicePaymentTable
-                .update {
-                    it[this.invoiceId] = invoicePayment.invoiceId
-                    it[this.status] = status.toString()
+                .update({
+                    InvoicePaymentTable.invoiceId.eq(invoiceId) and
+                    InvoicePaymentTable.status.eq(InvoicePaymentStatus.STARTED.toString())
+                }) {
+                    it[this.status] = InvoicePaymentStatus.PAID.toString()
                 }
         }
 
         return updatedCount > 0
+    }
+
+    fun markInvoicePaymentFailed(invoiceId: Int): Boolean {
+        // When payment failed, InvoicePayment is deleted to allow new payment retry to start.
+        val deletedCount = transaction(db) {
+            InvoicePaymentTable
+                .deleteWhere {
+                    InvoicePaymentTable.invoiceId.eq(invoiceId) and
+                    InvoicePaymentTable.status.eq(InvoicePaymentStatus.STARTED.toString())
+                }
+        }
+
+        return deletedCount > 0
     }
 
     fun fetchCustomer(id: Int): Customer? {
