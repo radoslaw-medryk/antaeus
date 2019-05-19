@@ -16,7 +16,7 @@ class AntaeusDal(private val db: Database) {
         // transaction(db) runs the internal query as a new database transaction.
         return transaction(db) {
             // Returns the first invoice with matching id.
-            InvoiceTable
+            (InvoiceTable leftJoin InvoicePaymentTable)
                 .select { InvoiceTable.id.eq(id) }
                 .firstOrNull()
                 ?.toInvoice()
@@ -25,7 +25,7 @@ class AntaeusDal(private val db: Database) {
 
     fun fetchInvoices(): List<Invoice> {
         return transaction(db) {
-            InvoiceTable
+            (InvoiceTable leftJoin InvoicePaymentTable)
                 .selectAll()
                 .map { it.toInvoice() }
         }
